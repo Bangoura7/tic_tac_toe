@@ -1,0 +1,20 @@
+# Fichiers système et éditeur
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Éditeurs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+*.log
+npm-debug.log*
+
+# Dépendances (si vous ajoutez npm plus tard)
+node_modules/
+package-lock.json
