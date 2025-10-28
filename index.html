@@ -10,35 +10,96 @@
     <div class="container">
         <h1>Tic Tac Toe</h1>
         
-        <div class="game-info">
-            <div class="player-turn">
-                <p>Tour du joueur: <span id="current-player">X</span></p>
+        <!-- Écran de démarrage -->
+        <div class="start-screen" id="start-screen">
+            <h2>Bienvenue !</h2>
+            <div class="player-setup">
+                <div class="input-group">
+                    <label for="player-x-name">
+                        <span class="marker-badge x-badge">X</span>
+                        Nom du Joueur 1
+                    </label>
+                    <input type="text" id="player-x-name" placeholder="Joueur X" maxlength="15">
+                </div>
+                <div class="input-group">
+                    <label for="player-o-name">
+                        <span class="marker-badge o-badge">O</span>
+                        Nom du Joueur 2
+                    </label>
+                    <input type="text" id="player-o-name" placeholder="Joueur O" maxlength="15">
+                </div>
             </div>
-            <div class="score">
-                <p>X: <span id="score-x">0</span></p>
-                <p>O: <span id="score-o">0</span></p>
-                <p>Nuls: <span id="score-draw">0</span></p>
+            <button id="start-btn" class="primary-btn">Commencer la Partie</button>
+        </div>
+        
+        <!-- Zone de jeu -->
+        <div class="game-area" id="game-area" style="display: none;">
+            <div class="game-info">
+                <div class="player-turn">
+                    <p>Tour de <span id="current-player-name" class="player-name">Joueur X</span></p>
+                    <span id="current-player-marker" class="current-marker">X</span>
+                </div>
+                <div class="score">
+                    <div class="score-item">
+                        <span class="score-label" id="score-x-label">X</span>
+                        <span class="score-value" id="score-x">0</span>
+                    </div>
+                    <div class="score-item">
+                        <span class="score-label">Nuls</span>
+                        <span class="score-value" id="score-draw">0</span>
+                    </div>
+                    <div class="score-item">
+                        <span class="score-label" id="score-o-label">O</span>
+                        <span class="score-value" id="score-o">0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="game-board" id="game-board">
+                <div class="cell" data-index="0"></div>
+                <div class="cell" data-index="1"></div>
+                <div class="cell" data-index="2"></div>
+                <div class="cell" data-index="3"></div>
+                <div class="cell" data-index="4"></div>
+                <div class="cell" data-index="5"></div>
+                <div class="cell" data-index="6"></div>
+                <div class="cell" data-index="7"></div>
+                <div class="cell" data-index="8"></div>
+            </div>
+            
+            <div class="game-controls">
+                <button id="reset-btn">Nouvelle Partie</button>
+                <button id="reset-score-btn">Réinitialiser Score</button>
+                <button id="back-to-menu-btn" class="secondary-btn">Menu Principal</button>
             </div>
         </div>
         
-        <div class="game-board" id="game-board">
-            <div class="cell" data-index="0"></div>
-            <div class="cell" data-index="1"></div>
-            <div class="cell" data-index="2"></div>
-            <div class="cell" data-index="3"></div>
-            <div class="cell" data-index="4"></div>
-            <div class="cell" data-index="5"></div>
-            <div class="cell" data-index="6"></div>
-            <div class="cell" data-index="7"></div>
-            <div class="cell" data-index="8"></div>
+        <!-- Modal de résultat -->
+        <div class="result-modal" id="result-modal">
+            <div class="result-content">
+                <div class="result-icon" id="result-icon">🎉</div>
+                <h2 id="result-title">Félicitations !</h2>
+                <p id="result-message" class="result-text"></p>
+                <div class="result-stats" id="result-stats">
+                    <div class="stat-item">
+                        <span class="stat-label" id="stat-x-label">X</span>
+                        <span class="stat-value" id="stat-x">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Nuls</span>
+                        <span class="stat-value" id="stat-draw">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label" id="stat-o-label">O</span>
+                        <span class="stat-value" id="stat-o">0</span>
+                    </div>
+                </div>
+                <div class="result-actions">
+                    <button id="play-again-btn" class="primary-btn">Rejouer</button>
+                    <button id="close-result-btn" class="secondary-btn">Fermer</button>
+                </div>
+            </div>
         </div>
-        
-        <div class="game-controls">
-            <button id="reset-btn">Nouvelle Partie</button>
-            <button id="reset-score-btn">Réinitialiser Score</button>
-        </div>
-        
-        <div class="message" id="message"></div>
     </div>
     
     <script src="script.js"></script>
