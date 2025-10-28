@@ -1,33 +1,6 @@
-// Objet Gameboard - Gère le plateau de jeu
+// Objet Gameboard - Gère le plateau de jeu et la logique de victoire
 const Gameboard = (() => {
     let board = ['', '', '', '', '', '', '', '', ''];
-    
-    return {
-        getBoard: () => board,
-        setCell: (index, marker) => board[index] === '' ? (board[index] = marker, true) : false,
-        reset: () => board = ['', '', '', '', '', '', '', '', ''],
-        isFull: () => !board.includes('')
-    };
-})();
-
-// Objet GameController - Contrôle le déroulement du jeu
-const GameController = (() => {
-    // Factory Player intégrée
-    const createPlayer = (marker) => {
-        let score = 0;
-        return {
-            getMarker: () => marker,
-            getScore: () => score,
-            incrementScore: () => score++,
-            resetScore: () => score = 0
-        };
-    };
-    
-    const playerX = createPlayer('X');
-    const playerO = createPlayer('O');
-    let currentPlayer = playerX;
-    let gameActive = true;
-    let drawCount = 0;
     
     const winningCombinations = [
         [0, 1, 2], [3, 4, 5], [6, 7, 8],
@@ -35,60 +8,145 @@ const GameController = (() => {
         [0, 4, 8], [2, 4, 6]
     ];
     
-    const checkWinner = () => {
-        const board = Gameboard.getBoard();
-        for (let [a, b, c] of winningCombinations) {
-            if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-                return { winner: currentPlayer, combination: [a, b, c] };
+    return {
+        getBoard: () => board,
+        getCell: (index) => board[index],
+        setCell: (index, marker) => {
+            if (board[index] === '') {
+                board[index] = marker;
+                return true;
             }
+            return false;
+        },
+        reset: () => board = ['', '', '', '', '', '', '', '', ''],
+        isFull: () => !board.includes(''),
+        checkWinner: () => {
+            // Vérifier les combinaisons gagnantes
+            for (let [a, b, c] of winningCombinations) {
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    return { marker: board[a], combination: [a, b, c] };
+                }
+            }
+            // Vérifier match nul
+            return !board.includes('') ? { marker: 'draw' } : null;
         }
-        return Gameboard.isFull() ? { winner: 'draw' } : null;
+    };
+})();
+
+// Factory Player - Gère un joueur individuel et son score
+const Player = (marker) => {
+    let score = 0;
+    
+    return {
+        getMarker: () => marker,
+        getScore: () => score,
+        incrementScore: () => score++,
+        setScore: (value) => score = value,
+        resetScore: () => score = 0
+    };
+};
+
+// Gestionnaire de scores - Gère la persistance des scores
+const ScoreManager = (() => {
+    const STORAGE_KEY = 'ticTacToeScores';
+    
+    return {
+        save: (playerX, playerO, draws) => {
+            const scores = {
+                x: playerX.getScore(),
+                o: playerO.getScore(),
+                draw: draws
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(scores));
+        },
+        load: () => {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            return saved ? JSON.parse(saved) : { x: 0, o: 0, draw: 0 };
+        },
+        clear: () => localStorage.removeItem(STORAGE_KEY)
+    };
+})();
+
+// Contrôleur de jeu - Orchestre le flux du jeu
+const GameController = (() => {
+    const playerX = Player('X');
+    const playerO = Player('O');
+    let currentPlayer = playerX;
+    let gameActive = true;
+    let drawCount = 0;
+    
+    const init = () => {
+        const savedScores = ScoreManager.load();
+        playerX.setScore(savedScores.x);
+        playerO.setScore(savedScores.o);
+        drawCount = savedScores.draw;
+    };
+    
+    const switchPlayer = () => {
+        currentPlayer = currentPlayer === playerX ? playerO : playerX;
+    };
+    
+    const getPlayerByMarker = (marker) => {
+        return marker === 'X' ? playerX : playerO;
     };
     
     return {
         getCurrentPlayer: () => currentPlayer,
+        isGameActive: () => gameActive,
+        
         playTurn: (index) => {
-            if (!gameActive || !Gameboard.setCell(index, currentPlayer.getMarker())) {
+            if (!gameActive) return false;
+            
+            if (!Gameboard.setCell(index, currentPlayer.getMarker())) {
                 return false;
             }
             
-            const result = checkWinner();
+            const result = Gameboard.checkWinner();
+            
             if (result) {
                 gameActive = false;
-                result.winner === 'draw' ? drawCount++ : result.winner.incrementScore();
-                return result;
+                
+                if (result.marker === 'draw') {
+                    drawCount++;
+                    ScoreManager.save(playerX, playerO, drawCount);
+                    return { isDraw: true };
+                } else {
+                    const winner = getPlayerByMarker(result.marker);
+                    winner.incrementScore();
+                    ScoreManager.save(playerX, playerO, drawCount);
+                    return { winner, combination: result.combination };
+                }
             }
             
-            currentPlayer = currentPlayer === playerX ? playerO : playerX;
+            switchPlayer();
             return { continue: true };
         },
+        
         resetGame: () => {
             Gameboard.reset();
             currentPlayer = playerX;
             gameActive = true;
         },
-        resetScores: () => {
+        
+        resetAllScores: () => {
             playerX.resetScore();
             playerO.resetScore();
             drawCount = 0;
+            ScoreManager.save(playerX, playerO, drawCount);
         },
-        getScores: () => ({ x: playerX.getScore(), o: playerO.getScore(), draw: drawCount }),
-        loadScores: () => {
-            const saved = localStorage.getItem('ticTacToeScores');
-            if (saved) {
-                const { x, o, draw } = JSON.parse(saved);
-                for (let i = 0; i < x; i++) playerX.incrementScore();
-                for (let i = 0; i < o; i++) playerO.incrementScore();
-                drawCount = draw;
-            }
-        },
-        saveScores: () => localStorage.setItem('ticTacToeScores', 
-            JSON.stringify({ x: playerX.getScore(), o: playerO.getScore(), draw: drawCount }))
+        
+        getScores: () => ({
+            x: playerX.getScore(),
+            o: playerO.getScore(),
+            draw: drawCount
+        }),
+        
+        init
     };
 })();
 
 
-// Module d'affichage - Gère l'interface utilisateur et s'auto-initialise
+// Contrôleur d'affichage - Gère uniquement l'interface utilisateur
 (() => {
     const cells = document.querySelectorAll('.cell');
     const elements = {
@@ -99,69 +157,91 @@ const GameController = (() => {
         scoreDraw: document.getElementById('score-draw')
     };
     
-    const updateDisplay = () => {
+    // Mise à jour de l'affichage du plateau
+    const renderBoard = () => {
         const board = Gameboard.getBoard();
         cells.forEach((cell, index) => {
             cell.textContent = board[index];
             cell.className = 'cell';
-            if (board[index]) cell.classList.add(board[index].toLowerCase());
+            if (board[index]) {
+                cell.classList.add(board[index].toLowerCase());
+            }
         });
     };
     
-    const updateScores = () => {
+    // Mise à jour de l'affichage des scores
+    const renderScores = () => {
         const scores = GameController.getScores();
         elements.scoreX.textContent = scores.x;
         elements.scoreO.textContent = scores.o;
         elements.scoreDraw.textContent = scores.draw;
     };
     
-    const showMessage = (text, winningCells) => {
+    // Mise à jour du joueur actuel
+    const renderCurrentPlayer = () => {
+        elements.currentPlayer.textContent = GameController.getCurrentPlayer().getMarker();
+    };
+    
+    // Affichage d'un message
+    const showMessage = (text) => {
         elements.message.textContent = text;
         elements.message.classList.add('show');
-        if (winningCells) {
-            winningCells.forEach(index => cells[index].classList.add('winner'));
-        }
     };
     
-    const handleCellClick = (e) => {
-        const result = GameController.playTurn(parseInt(e.target.dataset.index));
-        if (!result) return;
-        
-        updateDisplay();
-        
-        if (result.winner === 'draw') {
-            showMessage('Match nul!');
-            GameController.saveScores();
-            updateScores();
-        } else if (result.winner) {
-            showMessage(`Le joueur ${result.winner.getMarker()} a gagné!`, result.combination);
-            GameController.saveScores();
-            updateScores();
-        } else {
-            elements.currentPlayer.textContent = GameController.getCurrentPlayer().getMarker();
-        }
-    };
-    
-    const handleReset = () => {
-        GameController.resetGame();
-        updateDisplay();
-        elements.currentPlayer.textContent = GameController.getCurrentPlayer().getMarker();
+    // Effacer le message
+    const clearMessage = () => {
         elements.message.textContent = '';
         elements.message.classList.remove('show');
     };
     
-    const handleResetScore = () => {
-        GameController.resetScores();
-        updateScores();
-        GameController.saveScores();
+    // Mettre en évidence les cellules gagnantes
+    const highlightWinningCells = (combination) => {
+        combination.forEach(index => {
+            cells[index].classList.add('winner');
+        });
     };
     
-    // Initialisation automatique
+    // Gestionnaire de clic sur une cellule
+    const handleCellClick = (e) => {
+        const index = parseInt(e.target.dataset.index);
+        const result = GameController.playTurn(index);
+        
+        if (!result) return;
+        
+        renderBoard();
+        
+        if (result.isDraw) {
+            showMessage('Match nul!');
+            renderScores();
+        } else if (result.winner) {
+            showMessage(`Le joueur ${result.winner.getMarker()} a gagné!`);
+            highlightWinningCells(result.combination);
+            renderScores();
+        } else if (result.continue) {
+            renderCurrentPlayer();
+        }
+    };
+    
+    // Réinitialiser la partie
+    const handleReset = () => {
+        GameController.resetGame();
+        renderBoard();
+        renderCurrentPlayer();
+        clearMessage();
+    };
+    
+    // Réinitialiser les scores
+    const handleResetScores = () => {
+        GameController.resetAllScores();
+        renderScores();
+    };
+    
+    // Initialisation
     cells.forEach(cell => cell.addEventListener('click', handleCellClick));
     document.getElementById('reset-btn').addEventListener('click', handleReset);
-    document.getElementById('reset-score-btn').addEventListener('click', handleResetScore);
+    document.getElementById('reset-score-btn').addEventListener('click', handleResetScores);
     
-    GameController.loadScores();
-    updateScores();
-    elements.currentPlayer.textContent = GameController.getCurrentPlayer().getMarker();
+    GameController.init();
+    renderScores();
+    renderCurrentPlayer();
 })();
